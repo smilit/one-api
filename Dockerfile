@@ -1,8 +1,12 @@
-FROM --platform=$BUILDPLATFORM node:16 AS builder
+ARG NODE_IMAGE=node:16
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
 
 WORKDIR /web
 COPY ./VERSION .
 COPY ./web .
+
+# Use Chinese NPM mirror
+RUN npm config set registry https://registry.npmmirror.com
 
 RUN npm install --prefix /web/default & \
     npm install --prefix /web/berry & \
@@ -16,15 +20,19 @@ RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ./VERSION) npm run buil
 
 FROM golang:alpine AS builder2
 
-RUN apk add --no-cache \
+# Use Chinese Alpine mirror
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk add --no-cache \
     gcc \
     musl-dev \
     sqlite-dev \
     build-base
 
+# Use Chinese Go Proxy
 ENV GO111MODULE=on \
     CGO_ENABLED=1 \
-    GOOS=linux
+    GOOS=linux \
+    GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /build
 
@@ -38,7 +46,9 @@ RUN go build -trimpath -ldflags "-s -w -X 'github.com/songquanpeng/one-api/commo
 
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates tzdata
+# Use Chinese Alpine mirror
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder2 /build/one-api /
 
