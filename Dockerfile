@@ -1,5 +1,5 @@
 ARG NODE_IMAGE=node:16
-FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
+FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /web
 COPY ./VERSION .
